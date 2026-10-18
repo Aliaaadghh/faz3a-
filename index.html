@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#15171a">
+<title>فزعة</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@500;800&family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#f6f4f0;--card:#fff;--ink:#15171a;--muted:#5c6068;--line:#e2dfd8;--or:#e2470f;--ok:#1f7a3a;--okbg:#e2f2e6}
+@media (prefers-color-scheme:dark){:root{--bg:#15171a;--card:#22252a;--ink:#f1efeb;--muted:#a9adb4;--line:#33363c;--or:#ff5b1f;--ok:#4cc26f;--okbg:#163222}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans Arabic",system-ui,sans-serif}
+.w{max-width:440px;margin:0 auto;padding:16px 16px 40px;display:flex;flex-direction:column;gap:12px}
+.bar{background:#15171a;color:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-family:Alexandria;font-weight:800;font-size:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.lb{font-size:13px;color:var(--muted);margin:0}
+.dg{font-family:Alexandria;font-weight:800;direction:ltr;letter-spacing:.08em;font-size:30px;margin:0}
+.pill{font-size:12px;padding:4px 12px;border-radius:99px;background:var(--okbg);color:var(--ok);font-weight:700}
+h1{font-family:Alexandria;font-weight:800;font-size:23px;margin:6px 0 0}
+p{line-height:1.7}
+.big{border:0;width:100%;background:var(--or);color:#fff;border-radius:20px;padding:22px 16px;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px}
+.big .mic{width:68px;height:68px;border-radius:50%;background:#fff;color:var(--or);display:grid;place-items:center}
+.big b{font-family:Alexandria;font-weight:800;font-size:20px}
+.big.live{background:#15171a}
+.big.live .mic{animation:pulse 1.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,91,31,.6)}100%{box-shadow:0 0 0 22px rgba(255,91,31,0)}}
+.say{font-size:16px;margin:0;min-height:27px}
+.st{font-size:14px;color:var(--muted);text-align:center;min-height:22px;margin:0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="w">
+  <div class="bar"><svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#ff5b1f"/><path d="M12 42a20 20 0 0 1 40 0" fill="none" stroke="#15171a" stroke-width="5" stroke-linecap="round"/><path d="M21 42a11 11 0 0 1 22 0" fill="none" stroke="#15171a" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="42" r="5.5" fill="#15171a"/></svg>فزعة</div>
+
+  <div class="card row" id="band" hidden>
+    <div><p class="lb">سوارة رقم</p><p class="dg" id="code"></p></div>
+    <span class="pill">مسجّلة في فزعة</span>
+  </div>
+
+  <div>
+    <h1>لقيت طفل ضايع؟</h1>
+    <p class="lb" style="font-size:15px">فزعة تكلّمك الحين، وتوصّل الطفل لأهله.<span id="nonum" hidden> ما تحتاج تكتب أي رقم.</span></p>
+  </div>
+
+  <button class="big" id="go" type="button">
+    <span class="mic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 17v4"/><path d="M8 21h8"/></svg></span>
+    <b id="gol">تكلّم مع فزعة</b>
+  </button>
+  <p class="st" id="st" role="status" aria-live="polite"></p>
+
+  <div class="card row" style="padding:12px 14px">
+    <span style="color:var(--or);font-size:20px" aria-hidden="true">📍</span>
+    <p class="lb" id="gps" style="flex:1">نرسل موقعك لأهل الطفل بس بعد التحقق</p>
+  </div>
+
+  <div class="card">
+    <p class="lb" style="margin-bottom:4px">فزعة تقول:</p>
+    <p class="say" id="say">اضغط الزر وابدأ الكلام.</p>
+  </div>
+
+  <p class="lb" style="text-align:center">إذا الطفل في خطر، اتصل على 911</p>
+</div>
+
+<script type="module">
+const AGENT = 'agent_8101m57mtrjxfg8t3vd7fd0bzj40';
+const GPS = 'https://aliad.app.n8n.cloud/webhook/faz3a-el-gps?k=fz-el-4417';
+const $ = i => document.getElementById(i);
+
+const toEn = s => String(s || '').replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+const CODE = toEn(new URLSearchParams(location.search).get('c')).replace(/\D/g, '').slice(0, 6);
+if (CODE) { $('code').textContent = CODE; $('band').hidden = false; $('nonum').hidden = false; }
+
+let conv = null, sent = false, busy = false;
+const st = t => { $('st').textContent = t || ''; };
+const live = on => {
+  $('go').classList.toggle('live', on);
+  $('gol').textContent = on ? 'إنهاء المكالمة' : 'تكلّم مع فزعة';
+};
+
+function sendGps() {
+  if (!navigator.geolocation || !CODE) { $('gps').textContent = 'فزعة بتسألك عن المكان'; return; }
+  navigator.geolocation.getCurrentPosition(p => {
+    fetch(GPS, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: CODE, lat: p.coords.latitude, lng: p.coords.longitude, acc: Math.round(p.coords.accuracy || 0) })
+    }).catch(() => {});
+    $('gps').textContent = 'أخذنا موقعك ✓ يوصل للأهل بعد التحقق';
+  }, () => { $('gps').textContent = 'بدون موقع، فزعة بتسألك عن المكان'; },
+  { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+}
+
+$('go').onclick = async () => {
+  if (busy) return;
+  if (conv) { busy = true; try { await conv.endSession(); } catch (e) {} busy = false; return; }
+  busy = true;
+  st('جارٍ الاتصال بفزعة…');
+  sendGps();
+  try { await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { st('لازم تسمح باستخدام المايك'); busy = false; return; }
+  try {
+    const { Conversation } = await import('https://esm.sh/@elevenlabs/client');
+    conv = await Conversation.startSession({
+      agentId: AGENT,
+      connectionType: 'websocket',
+      onConnect: () => { live(true); st('متصل ✓ تكلّم بشكل طبيعي'); },
+      onDisconnect: () => { live(false); conv = null; sent = false; st('انتهت المكالمة. شكرًا لفزعتك 🧡'); },
+      onModeChange: ({ mode }) => {
+        if (mode === 'listening' && !sent && CODE) {
+          sent = true;
+          setTimeout(() => { try { conv && conv.sendUserMessage('رقم السوارة ' + CODE.split('').join(' ')); } catch (e) {} }, 300);
+        }
+      },
+      onMessage: ({ message, source }) => { if (source === 'ai' && message) $('say').textContent = message; },
+      onError: () => st('صار خطأ في الاتصال، جرّب مرة ثانية')
+    });
+  } catch (e) { st('تعذر الاتصال، جرّب مرة ثانية'); conv = null; }
+  busy = false;
+};
+</script>
+</body>
+</html>
