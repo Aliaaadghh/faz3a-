@@ -99,13 +99,14 @@ $('go').onclick = async () => {
   busy = true;
   st('جارٍ الاتصال بفزعة…');
   sendGps();
-  try { await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  try { const ms = await navigator.mediaDevices.getUserMedia({ audio: true }); ms.getTracks().forEach(t => t.stop()); }
   catch (e) { st('لازم تسمح باستخدام المايك'); busy = false; return; }
-  try {
-    const { Conversation } = await import('https://esm.sh/@elevenlabs/client');
-    conv = await Conversation.startSession({
+  let Conversation;
+  try { ({ Conversation } = await import('https://esm.sh/@elevenlabs/client@1.28.0')); }
+  catch (e) { st('تعذر تحميل فزعة: ' + (e && e.message || e)); busy = false; return; }
+  const opts = connectionType => ({
       agentId: AGENT,
-      connectionType: 'websocket',
+      connectionType,
       onConnect: () => { live(true); st('متصل ✓ تكلّم بشكل طبيعي'); },
       onDisconnect: () => { live(false); conv = null; sent = false; st('انتهت المكالمة. شكرًا لفزعتك 🧡'); },
       onModeChange: ({ mode }) => {
@@ -115,9 +116,13 @@ $('go').onclick = async () => {
         }
       },
       onMessage: ({ message, source }) => { if (source === 'ai' && message) $('say').textContent = message; },
-      onError: () => st('صار خطأ في الاتصال، جرّب مرة ثانية')
-    });
-  } catch (e) { st('تعذر الاتصال، جرّب مرة ثانية'); conv = null; }
+      onError: (m) => st('صار خطأ في الاتصال: ' + (m && m.message || m || ''))
+  });
+  try { conv = await Conversation.startSession(opts('websocket')); }
+  catch (e1) {
+    try { conv = await Conversation.startSession(opts('webrtc')); }
+    catch (e2) { st('تعذر الاتصال: ' + (e1 && e1.message || e1) + ' | ' + (e2 && e2.message || e2)); conv = null; }
+  }
   busy = false;
 };
 </script>
