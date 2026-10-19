@@ -93,21 +93,31 @@ function sendGps() {
   { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
 }
 
+const SDK = import('https://esm.sh/@elevenlabs/client@1.28.0').catch(e => ({ err: e }));
+function unlockAudio() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const ac = new AC(); const b = ac.createBuffer(1, 1, 22050); const s = ac.createBufferSource();
+    s.buffer = b; s.connect(ac.destination); s.start(0); ac.resume && ac.resume();
+  } catch (e) {}
+}
+
 $('go').onclick = async () => {
   if (busy) return;
   if (conv) { busy = true; try { await conv.endSession(); } catch (e) {} busy = false; return; }
   busy = true;
+  unlockAudio();
   st('جارٍ الاتصال بفزعة…');
   sendGps();
   try { const ms = await navigator.mediaDevices.getUserMedia({ audio: true }); ms.getTracks().forEach(t => t.stop()); }
   catch (e) { st('لازم تسمح باستخدام المايك'); busy = false; return; }
   let Conversation;
-  try { ({ Conversation } = await import('https://esm.sh/@elevenlabs/client@1.28.0')); }
-  catch (e) { st('تعذر تحميل فزعة: ' + (e && e.message || e)); busy = false; return; }
+  const mod = await SDK; Conversation = mod.Conversation;
+  if (!Conversation) { st('تعذر تحميل فزعة: ' + (mod.err && mod.err.message || mod.err)); busy = false; return; }
   const opts = connectionType => ({
       agentId: AGENT,
       connectionType,
-      onConnect: () => { live(true); st('متصل ✓ تكلّم بشكل طبيعي'); },
+      onConnect: () => { live(true); st('متصل ✓ تكلّم بشكل طبيعي'); setTimeout(() => { try { conv && conv.setVolume({ volume: 1 }); } catch (e) {} }, 200); },
       onDisconnect: () => { live(false); conv = null; sent = false; st('انتهت المكالمة. شكرًا لفزعتك 🧡'); },
       onModeChange: ({ mode }) => {
         if (mode === 'listening' && !sent && CODE) {
